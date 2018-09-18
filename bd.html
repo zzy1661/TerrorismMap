@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+	body, html,#allmap {width: 100%;height: 100%;overflow: hidden;margin:0;font-family:"微软雅黑";}
+	label {
+		cursor: pointer;
+	}
+	table {
+		border-collapse:collapse;
+		border-color: black;
+		position: absolute;
+	    right: 0;
+	    top: 20px;
+	    z-index: 100;
+	    background: white;
+	    text-align: center;
+	}
+	</style>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=eNxvR05iX64b3peEGOHYhlrBqttwNTlf"></script>
+	<title>地图展示</title>
+	<script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+</head>
+<body>
+	<div id="years">
+		<label for="year2015"><input id="year2015" type="radio" name="year" value="2015"/>2015</label>
+		<label for="year2016"><input id="year2016" type="radio" name="year" value="2016"/>2016</label>
+		<label for="year2017"><input id="year2017" type="radio" name="year" value="2017"/>2017</label>
+	</div>
+	<table border="1">
+		<tr><th>region</th><th>color</th></tr>
+		<tr>
+			<td>1</td>
+			<td style="background:#ed5565;"></td>
+		</tr>
+		<tr>
+			<td>2</td>
+			<td style="background:#fc6e51;"></td>
+		</tr>
+		<tr>
+			<td>3</td>
+			<td style="background:#ffce54;"></td>
+		</tr>
+		<tr>
+			<td>4</td>
+			<td style="background:#a0d468;"></td>
+		</tr>
+		<tr>
+			<td>5</td>
+			<td style="background:#48cfad;"></td>
+		</tr>
+		<tr>
+			<td>6</td>
+			<td style="background:#4fc1e9;"></td>
+		</tr>
+		<tr>
+			<td>7</td>
+			<td style="background:#5d9cec;"></td>
+		</tr>
+		<tr>
+			<td>8</td>
+			<td style="background:#ac92ec;"></td>
+		</tr>
+		<tr>
+			<td>9</td>
+			<td style="background:#aab2bd;"></td>
+		</tr>
+		<tr>
+			<td>10</td>
+			<td style="background:#ed5565;"></td>
+		</tr>
+		<tr>
+			<td>11</td>
+			<td style="background:#656d78;"></td>
+		</tr>
+		<tr>
+			<td>12</td>
+			<td style="background:#434a54;"></td>
+		</tr>
+	</table>
+	<div id="allmap"></div>
+</body>
+</html>
+<script type="text/javascript">
+	var map = new BMap.Map("allmap", {});                        // 创建Map实例
+    map.centerAndZoom(new BMap.Point(105.000, 38.000), 4);     // 初始化地图,设置中心点坐标和地图级别
+    map.enableScrollWheelZoom();                        //启用滚轮放大缩小
+    var datas = {
+    	2015: null,
+    	2016: null,
+    	2017: null
+    }
+    var colorSet = ['#ed5565','#fc6e51','#ffce54',
+    	'#a0d468','#48cfad','#4fc1e9','#5d9cec','#ac92ec',
+    	'#ec87c0','#aab2bd','#656d78','#434a54'];
+    var pointCollection = null;
+    $('#years').on('change',function(){
+    	var val = $("input[name='year']:checked").val();
+    	var data = datas[val];
+    	if(!data) {
+    		$.get(`./server/public/gps-${val}-bd.json`).then(function(res) {
+    			datas[val] = res;
+    			addPointCollection(res)
+			})
+    	}else {
+    		addPointCollection(data)
+    	}
+    })
+	function addPointCollection(data) {
+        var pointsArr = {};  // 添加海量点数据
+        for (var i = 0; i < data.length; i++) {
+        	if(pointsArr[data[i].region]){
+        		pointsArr[data[i].region].push(new BMap.Point(data[i].x, data[i].y));
+        	}else {
+        		pointsArr[data[i].region] = [new BMap.Point(data[i].x, data[i].y)];
+        	}
+        }
+//      console.log(pointsArr)
+        if(pointCollection&&pointCollection.length) {
+        	pointCollection.forEach(item=>{
+        		map.removeOverlay(item);
+        	})
+        }       
+        pointCollection = [];
+        for(var name in pointsArr){
+        	console.log(name);
+        	var points = pointsArr[name];
+        	var options = {
+	            size: BMAP_POINT_SIZE_SMALL,
+	            shape: BMAP_POINT_SHAPE_STAR,
+	            color: colorSet[name]
+	        }
+        	pointCollection.push(new BMap.PointCollection(points, options));
+        }
+
+		pointCollection.forEach(item=>{
+			map.addOverlay(item);  // 添加Overlay
+		})
+        
+	}
+	$(document).ready(function(){
+		$('#year2017').click()
+	})
+</script>
